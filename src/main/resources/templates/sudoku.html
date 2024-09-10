@@ -1,10 +1,77 @@
 <!DOCTYPE html>
-<html lang="en">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+    <title>Sudoku Solver</title>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .sudoku-grid {
+            margin: 0 auto;
+            border-collapse: collapse;
+        }
+
+        .sudoku-grid td {
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            border: 1px solid #ccc;
+        }
+
+        .sudoku-grid input {
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            text-align: center;
+            border: none;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+    </style>
 </head>
 <body>
-
+<h1>Sudoku Solver</h1>
+<form action="#" th:action="@{/solve}" th:object="${sudoku}" method="post">
+    <table class="sudoku-grid">
+        <tbody>
+        <tr th:each="row, iterRow : ${#numbers.sequence(0, 8)}">
+            <td th:each="col : ${#numbers.sequence(0, 8)}">
+                <input type="number" th:field="*{grid[__${iterRow}__][__${col}__]}" min="1" max="9"/>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+    <button type="submit">Solve</button>
+</form>
+<div th:if="${solved}">
+    <h2>Solution</h2>
+    <table class="sudoku-grid">
+        <tbody>
+        <tr th:each="row, iterRow : ${#numbers.sequence(0, 8)}">
+            <td th:each="col : ${#numbers.sequence(0, 8)}">
+                <input type="text" th:value="${sudoku.grid[__${iterRow}__][__${col}__]}" readonly/>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+<div th:if="${!solved}">
+    <h2>No Solution Found</h2>
+</div>
 </body>
 </html>
