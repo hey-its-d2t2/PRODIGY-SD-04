@@ -6,13 +6,13 @@
         body {
             font-family: 'Arial', sans-serif;
             text-align: center;
-            background-color: #f4f4f4;
+            background-color: #f0f8ff;
             margin: 0;
             padding: 0;
         }
 
         .navbar {
-            background-color: #007bff;
+            background-color: #007BFF; /* Updated color */
             padding: 15px;
             color: #fff;
             position: fixed;
@@ -20,6 +20,15 @@
             top: 0;
             left: 0;
             z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .navbar h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: bold;
         }
 
         .container {
@@ -29,11 +38,11 @@
             background: #fff;
             border-radius: 10px;
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s ease;
         }
 
-        h1 {
-            color: #fff;
-            margin: 0;
+        .container:hover {
+            background-color: #f8f9fa;
         }
 
         .sudoku-grid {
@@ -44,7 +53,24 @@
         .sudoku-grid td {
             width: 50px;
             height: 50px;
-            border: 1px solid #ccc;
+            border: 1px solid #ddd;
+        }
+
+        /* Apply color to borders to differentiate 3x3 sub-grids */
+        .sudoku-grid td:nth-child(3n) {
+            border-right: 2px solid #007BFF; /* Color for vertical grid lines */
+        }
+
+        .sudoku-grid tr:nth-child(3n) td {
+            border-bottom: 2px solid #007BFF; /* Color for horizontal grid lines */
+        }
+
+        .sudoku-grid td:nth-child(3n + 1) {
+            border-left: 2px solid #007BFF; /* Color for vertical grid lines */
+        }
+
+        .sudoku-grid tr:nth-child(3n + 1) td {
+            border-top: 2px solid #007BFF; /* Color for horizontal grid lines */
         }
 
         .sudoku-grid input {
@@ -52,20 +78,26 @@
             height: 100%;
             text-align: center;
             font-size: 18px;
-            background-color: #fafafa;
+            background-color: #fff;
             border: none;
             outline: none;
+            transition: background-color 0.3s ease;
+        }
+
+        .sudoku-grid input:focus {
+            background-color: #d1ecf1;
         }
 
         button {
             padding: 12px 25px;
             font-size: 16px;
-            background-color: #28a745;
+            background-color: #28a745; /* Updated color */
             border: none;
             color: white;
             border-radius: 5px;
             margin-top: 25px;
             cursor: pointer;
+            transition: background-color 0.3s ease;
         }
 
         button:hover {
@@ -77,7 +109,7 @@
         }
 
         .footer {
-            background-color: #007bff;
+            background-color: #007BFF; /* Updated color */
             color: white;
             padding: 15px;
             position: fixed;
@@ -90,6 +122,32 @@
         .footer p {
             margin: 0;
         }
+
+        .popup {
+            display: none;
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background: #fff;
+            border: 2px solid #007BFF; /* Updated color */
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            z-index: 1001;
+            width: 300px;
+            text-align: center;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .popup button {
+            margin-top: 20px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -98,12 +156,12 @@
 </div>
 
 <div class="container">
-    <form id="sudokuForm" th:action="@{/solve}" th:object="${sudoku}" method="post">
+    <form id="sudokuForm">
         <table class="sudoku-grid">
             <tbody>
             <tr th:each="row, rowIdx : ${#numbers.sequence(0, 8)}">
                 <td th:each="col, colIdx : ${#numbers.sequence(0, 8)}">
-                    <input type="number" id="cell-${rowIdx}-${colIdx}" name="grid[${rowIdx}][${colIdx}]" min="0" max="9" placeholder="0" />
+                    <input type="number" id="cell-${rowIdx}-${colIdx}" name="grid[${rowIdx}][${colIdx}]" min="0" max="9" placeholder="" />
                 </td>
             </tr>
             </tbody>
@@ -131,7 +189,12 @@
 </div>
 
 <div class="footer">
-    <p>&copy; 2024 Sudoku Solver. All Rights Reserved.</p>
+    <p>&copy; 2024 Sudoku Solver. All Rights Reserved. Contact: deepsinghkumar01@gmail.com</p>
+</div>
+
+<div id="popup" class="popup">
+    <div id="popupMessage"></div>
+    <button id="popupButton">Replay</button>
 </div>
 
 <script>
@@ -139,8 +202,33 @@
         const form = document.getElementById('sudokuForm');
         const solutionMessage = document.getElementById('solutionMessage');
         const noSolutionMessage = document.getElementById('noSolutionMessage');
+        const popup = document.getElementById('popup');
+        const popupMessage = document.getElementById('popupMessage');
+        const popupButton = document.getElementById('popupButton');
 
-        // Example function to simulate solving and update UI
+        function getRandomSudokuValues() {
+            // Generates random values for the Sudoku grid
+            return Array.from({ length: 9 }, () =>
+                Array.from({ length: 9 }, () => Math.floor(Math.random() * 10))
+            );
+        }
+
+        function initializeBoard() {
+            const randomValues = getRandomSudokuValues();
+            randomValues.forEach((row, rowIdx) => {
+                row.forEach((value, colIdx) => {
+                    const cell = document.getElementById(`cell-${rowIdx}-${colIdx}`);
+                    cell.value = Math.random() > 0.5 ? value : ''; // Randomly decide to leave some cells empty
+                });
+            });
+        }
+
+        function showPopup(message, callback) {
+            popupMessage.textContent = message;
+            popup.style.display = 'block';
+            popupButton.addEventListener('click', callback, { once: true });
+        }
+
         function handleFormSubmit(event) {
             event.preventDefault();
 
@@ -154,7 +242,7 @@
                     isValid = false;
                     input.style.backgroundColor = '#f8d7da'; // Highlight invalid inputs
                 } else {
-                    input.style.backgroundColor = '#fafafa'; // Reset background color
+                    input.style.backgroundColor = '#fff'; // Reset background color
                 }
             });
 
@@ -169,26 +257,35 @@
                 solutionMessage.style.display = 'block';
                 noSolutionMessage.style.display = 'none';
                 updateSolutionTable(solved);
+                showPopup('Sudoku solved successfully!', () => {
+                    initializeBoard();
+                });
             } else {
                 solutionMessage.style.display = 'none';
                 noSolutionMessage.style.display = 'block';
+                showPopup('No solution found. Try again.', () => {
+                    initializeBoard();
+                });
             }
         }
 
         function simulateSudokuSolve() {
-            return Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => Math.floor(Math.random() * 9 + 1)));
+            // Simulates solving Sudoku, replace with actual solver logic
+            return getRandomSudokuValues(); // Random values as placeholder for actual solution
         }
 
         function updateSolutionTable(solution) {
-            const table = document.getElementById('solutionTable');
-            table.querySelectorAll('input').forEach((input, index) => {
-                const row = Math.floor(index / 9);
-                const col = index % 9;
-                input.value = solution[row][col];
+            const solutionTable = document.getElementById('solutionTable');
+            solution.forEach((row, rowIdx) => {
+                row.forEach((value, colIdx) => {
+                    const cell = document.getElementById(`solution-cell-${rowIdx}-${colIdx}`);
+                    cell.value = value || '';
+                });
             });
         }
 
         form.addEventListener('submit', handleFormSubmit);
+        initializeBoard(); // Initialize board with random values on page load
     });
 </script>
 </body>
