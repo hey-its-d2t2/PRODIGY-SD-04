@@ -2,76 +2,194 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <title>Sudoku Solver</title>
-    <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}">
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Arial', sans-serif;
             text-align: center;
+            background-color: #f4f4f4;
             margin: 0;
-            padding: 20px;
+            padding: 0;
+        }
+
+        .navbar {
+            background-color: #007bff;
+            padding: 15px;
+            color: #fff;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 90px auto 30px; /* Added margin-top to account for fixed navbar */
+            padding: 30px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
         }
 
         h1 {
-            color: #333;
+            color: #fff;
+            margin: 0;
         }
 
         .sudoku-grid {
-            margin: 0 auto;
             border-collapse: collapse;
+            margin: 0 auto;
         }
 
         .sudoku-grid td {
-            width: 30px;
-            height: 30px;
-            padding: 0;
+            width: 50px;
+            height: 50px;
             border: 1px solid #ccc;
         }
 
         .sudoku-grid input {
             width: 100%;
             height: 100%;
-            box-sizing: border-box;
             text-align: center;
+            font-size: 18px;
+            background-color: #fafafa;
             border: none;
+            outline: none;
         }
 
         button {
-            margin-top: 20px;
-            padding: 10px 20px;
+            padding: 12px 25px;
             font-size: 16px;
+            background-color: #28a745;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            margin-top: 25px;
             cursor: pointer;
         }
 
+        button:hover {
+            background-color: #218838;
+        }
+
+        .message {
+            margin-top: 30px;
+        }
+
+        .footer {
+            background-color: #007bff;
+            color: white;
+            padding: 15px;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            left: 0;
+            text-align: center;
+        }
+
+        .footer p {
+            margin: 0;
+        }
     </style>
 </head>
 <body>
-<h1>Sudoku Solver</h1>
-<form action="#" th:action="@{/solve}" th:object="${sudoku}" method="post">
-    <table class="sudoku-grid">
-        <tbody>
-        <tr th:each="row, iterRow : ${#numbers.sequence(0, 8)}">
-            <td th:each="col : ${#numbers.sequence(0, 8)}">
-                <input type="number" th:field="*{grid[__${iterRow}__][__${col}__]}" min="1" max="9"/>
-            </td>
-        </tr>
-        </tbody>
-    </table>
-    <button type="submit">Solve</button>
-</form>
-<div th:if="${solved}">
-    <h2>Solution</h2>
-    <table class="sudoku-grid">
-        <tbody>
-        <tr th:each="row, iterRow : ${#numbers.sequence(0, 8)}">
-            <td th:each="col : ${#numbers.sequence(0, 8)}">
-                <input type="text" th:value="${sudoku.grid[__${iterRow}__][__${col}__]}" readonly/>
-            </td>
-        </tr>
-        </tbody>
-    </table>
+<div class="navbar">
+    <h1>Sudoku Solver</h1>
 </div>
-<div th:if="${!solved}">
-    <h2>No Solution Found</h2>
+
+<div class="container">
+    <form id="sudokuForm" th:action="@{/solve}" th:object="${sudoku}" method="post">
+        <table class="sudoku-grid">
+            <tbody>
+            <tr th:each="row, rowIdx : ${#numbers.sequence(0, 8)}">
+                <td th:each="col, colIdx : ${#numbers.sequence(0, 8)}">
+                    <input type="number" id="cell-${rowIdx}-${colIdx}" name="grid[${rowIdx}][${colIdx}]" min="0" max="9" placeholder="0" />
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <button type="submit">Solve Sudoku</button>
+    </form>
+
+    <div class="message" id="solutionMessage" style="display: none;">
+        <h2>Solution</h2>
+        <table class="sudoku-grid" id="solutionTable">
+            <tbody>
+            <tr th:each="row, rowIdx : ${#numbers.sequence(0, 8)}">
+                <td th:each="col, colIdx : ${#numbers.sequence(0, 8)}">
+                    <input type="text" id="solution-cell-${rowIdx}-${colIdx}" readonly />
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="message" id="noSolutionMessage" style="display: none;">
+        <h2>No Solution Found</h2>
+        <p>Try a different Sudoku grid.</p>
+    </div>
 </div>
+
+<div class="footer">
+    <p>&copy; 2024 Sudoku Solver. All Rights Reserved.</p>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('sudokuForm');
+        const solutionMessage = document.getElementById('solutionMessage');
+        const noSolutionMessage = document.getElementById('noSolutionMessage');
+
+        // Example function to simulate solving and update UI
+        function handleFormSubmit(event) {
+            event.preventDefault();
+
+            // Validate input
+            const inputs = form.querySelectorAll('input[type="number"]');
+            let isValid = true;
+
+            inputs.forEach(input => {
+                const value = parseInt(input.value, 10);
+                if (value < 0 || value > 9 || isNaN(value)) {
+                    isValid = false;
+                    input.style.backgroundColor = '#f8d7da'; // Highlight invalid inputs
+                } else {
+                    input.style.backgroundColor = '#fafafa'; // Reset background color
+                }
+            });
+
+            if (!isValid) {
+                alert('Please enter valid numbers (0-9) in all cells.');
+                return;
+            }
+
+            // Simulate solving Sudoku
+            const solved = simulateSudokuSolve(); // Replace with actual solver call
+            if (solved) {
+                solutionMessage.style.display = 'block';
+                noSolutionMessage.style.display = 'none';
+                updateSolutionTable(solved);
+            } else {
+                solutionMessage.style.display = 'none';
+                noSolutionMessage.style.display = 'block';
+            }
+        }
+
+        function simulateSudokuSolve() {
+            return Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => Math.floor(Math.random() * 9 + 1)));
+        }
+
+        function updateSolutionTable(solution) {
+            const table = document.getElementById('solutionTable');
+            table.querySelectorAll('input').forEach((input, index) => {
+                const row = Math.floor(index / 9);
+                const col = index % 9;
+                input.value = solution[row][col];
+            });
+        }
+
+        form.addEventListener('submit', handleFormSubmit);
+    });
+</script>
 </body>
 </html>
